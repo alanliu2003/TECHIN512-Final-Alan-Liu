@@ -14,7 +14,7 @@ import menu_screens
 import game_engine
 
 # ------------------------
-# PIN CONFIG (change if needed)
+# PIN CONFIG
 # ------------------------
 ENCODER_PIN_A = board.D9
 ENCODER_PIN_B = board.D10
@@ -32,11 +32,11 @@ display = adafruit_displayio_ssd1306.SSD1306(display_bus, width=128, height=64)
 main_group = displayio.Group()
 display.root_group = main_group
 
-# Accelerometer (ADXL345)
+# Accelerometer
 accelerometer = adafruit_adxl34x.ADXL345(i2c)
 
 # ------------------------
-# ENCODER + BUTTON
+# ENCODER + BUTTON (unchanged sensitivity)
 # ------------------------
 encoder = RotaryEncoder(
     ENCODER_PIN_A,
@@ -54,10 +54,13 @@ last_button_state = button.value  # True = released, False = pressed
 # ------------------------
 # STATE
 # ------------------------
-mode = "main_menu"        # "main_menu", "difficulty", "game"
+mode = "main_menu"        # "main_menu", "difficulty", "game", "game_over"
 menu_index = 0
 difficulty_index = 0
+game_over_index = 0
+
 selected_difficulty = None
+current_level_config = None
 game = None  # Game instance
 
 
@@ -69,10 +72,6 @@ def turn_off_display_and_exit():
 
 
 def load_level_config_for_difficulty(difficulty_name: str) -> dict:
-    """
-    Reads /levels/<difficulty>.json.
-    If missing, returns a reasonable default.
-    """
     filename = "/levels/{}.json".format(difficulty_name.lower())
     try:
         with open(filename, "r") as f:
@@ -93,7 +92,11 @@ def load_level_config_for_difficulty(difficulty_name: str) -> dict:
         }
 
 
-# initial screen
+# ------------------------
+# SPLASH + INITIAL MAIN MENU
+# ------------------------
+menu_screens.show_splash_screen(main_group)
+time.sleep(2.0)  # show splash briefly
 menu_screens.show_main_menu(main_group, menu_index)
 
 # ------------------------
@@ -127,6 +130,17 @@ while True:
         elif mode == "game" and game is not None:
             game.handle_encoder_delta(delta)
 
+        elif mode == "game_over":
+            if delta > 0:
+                game_over_index = (game_over_index + 1) % len(
+                    menu_screens.GAME_OVER_OPTIONS
+                )
+            elif delta < 0:
+                game_over_index = (game_over_index - 1) % len(
+                    menu_screens.GAME_OVER_OPTIONS
+                )
+            menu_screens.show_game_over_menu(main_group, game_over_index)
+
         last_encoder_position = pos
 
     # --- BUTTON (edge detect) ---
@@ -144,14 +158,27 @@ while True:
 
         elif mode == "difficulty":
             selected_difficulty = menu_screens.DIFFICULTY_OPTIONS[difficulty_index]
-            level_cfg = load_level_config_for_difficulty(selected_difficulty)
-            game = game_engine.Game(main_group, level_cfg)
+            current_level_config = load_level_config_for_difficulty(selected_difficulty)
+            game = game_engine.Game(main_group, current_level_config)
             mode = "game"
             last_encoder_position = encoder.position
 
         elif mode == "game" and game is not None:
             # fire bullet
             game.handle_button_press()
+
+        elif mode == "game_over":
+            choice = menu_screens.GAME_OVER_OPTIONS[game_over_index]
+            if choice == "Restart":
+                if current_level_config is not None:
+                    game = game_engine.Game(main_group, current_level_config)
+                    mode = "game"
+                    last_encoder_position = encoder.position
+            else:  # "Main Menu"
+                mode = "main_menu"
+                menu_index = 0
+                menu_screens.show_main_menu(main_group, menu_index)
+                last_encoder_position = encoder.position
 
     last_button_state = current_button_state
 
@@ -160,5 +187,9 @@ while True:
         ax, ay, az = accelerometer.acceleration
         now = time.monotonic()
         game.update(ay, now)
+        if game.game_over:
+            mode = "game_over"
+            game_over_index = 0
+            menu_screens.show_game_over_menu(main_group, game_over_index)
 
     time.sleep(0.01)
