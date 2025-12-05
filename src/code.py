@@ -18,7 +18,10 @@ import game_engine
 # ------------------------
 ENCODER_PIN_A = board.D9
 ENCODER_PIN_B = board.D10
-BUTTON_PIN    = board.D8
+
+BUTTON_PIN       = board.D8   # main button: confirm / shoot
+LEFT_BUTTON_PIN  = board.D0   # move left in game
+RIGHT_BUTTON_PIN = board.D1   # move right in game
 
 # ------------------------
 # DISPLAY + I2C
@@ -32,17 +35,17 @@ display = adafruit_displayio_ssd1306.SSD1306(display_bus, width=128, height=64)
 main_group = displayio.Group()
 display.root_group = main_group
 
-# Accelerometer
+# Accelerometer (ADXL345)
 accelerometer = adafruit_adxl34x.ADXL345(i2c)
 
 # ------------------------
-# ENCODER + BUTTON (unchanged sensitivity)
+# ENCODER + BUTTONS
 # ------------------------
 encoder = RotaryEncoder(
     ENCODER_PIN_A,
     ENCODER_PIN_B,
     debounce_ms=3,
-    pulses_per_detent=3
+    pulses_per_detent=3    # leave as-is; encoder only used for menus
 )
 last_encoder_position = encoder.position
 
@@ -50,6 +53,14 @@ button = DigitalInOut(BUTTON_PIN)
 button.direction = Direction.INPUT
 button.pull = Pull.UP
 last_button_state = button.value  # True = released, False = pressed
+
+left_button = DigitalInOut(LEFT_BUTTON_PIN)
+left_button.direction = Direction.INPUT
+left_button.pull = Pull.UP
+
+right_button = DigitalInOut(RIGHT_BUTTON_PIN)
+right_button.direction = Direction.INPUT
+right_button.pull = Pull.UP
 
 # ------------------------
 # STATE
@@ -77,7 +88,7 @@ def load_level_config_for_difficulty(difficulty_name: str) -> dict:
         with open(filename, "r") as f:
             return json.load(f)
     except OSError:
-        # fallback defaults
+        # fallback defaults if file missing
         return {
             "name": difficulty_name,
             "scroll_speed": 1 if difficulty_name == "Easy" else
@@ -103,7 +114,7 @@ menu_screens.show_main_menu(main_group, menu_index)
 # MAIN LOOP
 # ------------------------
 while True:
-    # --- ENCODER ---
+    # --- ENCODER: MENUS ONLY ---
     changed = encoder.update()
     if changed:
         pos = encoder.position
@@ -118,32 +129,22 @@ while True:
 
         elif mode == "difficulty":
             if delta > 0:
-                difficulty_index = (difficulty_index + 1) % len(
-                    menu_screens.DIFFICULTY_OPTIONS
-                )
+                difficulty_index = (difficulty_index + 1) % len(menu_screens.DIFFICULTY_OPTIONS)
             elif delta < 0:
-                difficulty_index = (difficulty_index - 1) % len(
-                    menu_screens.DIFFICULTY_OPTIONS
-                )
+                difficulty_index = (difficulty_index - 1) % len(menu_screens.DIFFICULTY_OPTIONS)
             menu_screens.show_difficulty_menu(main_group, difficulty_index)
-
-        elif mode == "game" and game is not None:
-            game.handle_encoder_delta(delta)
 
         elif mode == "game_over":
             if delta > 0:
-                game_over_index = (game_over_index + 1) % len(
-                    menu_screens.GAME_OVER_OPTIONS
-                )
+                game_over_index = (game_over_index + 1) % len(menu_screens.GAME_OVER_OPTIONS)
             elif delta < 0:
-                game_over_index = (game_over_index - 1) % len(
-                    menu_screens.GAME_OVER_OPTIONS
-                )
+                game_over_index = (game_over_index - 1) % len(menu_screens.GAME_OVER_OPTIONS)
             menu_screens.show_game_over_menu(main_group, game_over_index)
 
+        # NOTE: encoder no longer moves the player at all
         last_encoder_position = pos
 
-    # --- BUTTON (edge detect) ---
+    # --- MAIN BUTTON (edge detect) ---
     current_button_state = button.value  # True = released, False = pressed
     if last_button_state and not current_button_state:
         # just pressed
@@ -182,11 +183,20 @@ while True:
 
     last_button_state = current_button_state
 
-    # --- GAME UPDATE ---
+    # --- GAME UPDATE (movement + obstacles) ---
     if mode == "game" and game is not None:
+        # Left/right movement via buttons (active LOW)
+        if not left_button.value:
+            game.handle_encoder_delta(-1)   # move left
+        if not right_button.value:
+            game.handle_encoder_delta(1)    # move right
+
+        # Tilt-based vertical movement + obstacle spawning/motion
         ax, ay, az = accelerometer.acceleration
         now = time.monotonic()
         game.update(ay, now)
+
+        # Check for collision -> game over menu
         if game.game_over:
             mode = "game_over"
             game_over_index = 0
