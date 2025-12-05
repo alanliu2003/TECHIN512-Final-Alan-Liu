@@ -1,0 +1,14 @@
+{
+  "name": "Easy L7",
+  "scroll_speed": 1.1,
+  "spawn_interval_frames": 50,
+  "max_obstacles": 2,
+  "obstacle_min_length": 25,
+  "obstacle_max_length": 45,
+  "tilt_threshold": 3.0
+}
+
+
+
+
+

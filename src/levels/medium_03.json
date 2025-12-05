@@ -1,0 +1,10 @@
+{
+  "name": "Medium L3",
+  "scroll_speed": 1.4,
+  "spawn_interval_frames": 25,
+  "max_obstacles": 4,
+  "obstacle_min_length": 25,
+  "obstacle_max_length": 45,
+  "tilt_threshold": 3.0
+}
+

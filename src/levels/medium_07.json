@@ -1,6 +1,6 @@
 {
-  "name": "Easy",
-  "scroll_speed": 1,
+  "name": "Medium L7",
+  "scroll_speed": 2.2,
   "spawn_interval_frames": 25,
   "max_obstacles": 4,
   "obstacle_min_length": 25,

@@ -1,9 +1,9 @@
 {
-  "name": "Medium",
+  "name": "Hard L1",
   "scroll_speed": 2,
   "spawn_interval_frames": 18,
   "max_obstacles": 6,
-  "obstacle_min_length": 20,
-  "obstacle_max_length": 40,
+  "obstacle_min_length": 25,
+  "obstacle_max_length": 45,
   "tilt_threshold": 3.0
 }

@@ -1,0 +1,9 @@
+{
+  "name": "Medium L8",
+  "scroll_speed": 2.4,
+  "spawn_interval_frames": 25,
+  "max_obstacles": 4,
+  "obstacle_min_length": 25,
+  "obstacle_max_length": 45,
+  "tilt_threshold": 3.0
+}

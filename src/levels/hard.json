@@ -1,9 +1,0 @@
-{
-  "name": "Hard",
-  "scroll_speed": 3,
-  "spawn_interval_frames": 12,
-  "max_obstacles": 8,
-  "obstacle_min_length": 15,
-  "obstacle_max_length": 35,
-  "tilt_threshold": 3.0
-}
