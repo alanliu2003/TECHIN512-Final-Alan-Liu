@@ -98,7 +98,6 @@ def show_level_menu(
     )
     group.append(subtitle)
 
-    # Show current level as single big line (1/10 etc.)
     level_num = level_index + 1
     level_text = "> Level {}/{}".format(level_num, LEVEL_COUNT)
     level_label = label.Label(
@@ -118,22 +117,94 @@ def show_level_menu(
     group.append(hint)
 
 
-def show_game_over_menu(group: displayio.Group, selected_index: int) -> None:
+def show_name_entry(
+    group: displayio.Group,
+    current_name: str,
+    current_char: str,
+) -> None:
+    """Name entry screen shown after level select."""
     clear_group(group)
 
-    title = label.Label(terminalio.FONT, text="Game Over", x=28, y=10)
-    subtitle = label.Label(terminalio.FONT, text="Rotate + press", x=16, y=22)
+    title = label.Label(terminalio.FONT, text="Enter Name", x=18, y=10)
     group.append(title)
-    group.append(subtitle)
 
-    y_base = 40
-    spacing = 12
+    name_label = label.Label(
+        terminalio.FONT,
+        text="Name: {}".format(current_name),
+        x=4,
+        y=26,
+    )
+    group.append(name_label)
+
+    char_label = label.Label(
+        terminalio.FONT,
+        text="Char: [{}]".format(current_char),
+        x=4,
+        y=40,
+    )
+    group.append(char_label)
+
+    hint1 = label.Label(
+        terminalio.FONT,
+        text="Left/Right: change",
+        x=4,
+        y=52,
+    )
+    group.append(hint1)
+
+
+def show_game_over_menu(
+    group: displayio.Group,
+    selected_index: int,
+    player_score: int,
+    high_scores: list,
+) -> None:
+    clear_group(group)
+
+    title = label.Label(terminalio.FONT, text="Game Over", x=28, y=8)
+    group.append(title)
+
+    your_line = label.Label(
+        terminalio.FONT,
+        text="You: {}".format(player_score),
+        x=4,
+        y=18,
+    )
+    group.append(your_line)
+
+    hs_title = label.Label(
+        terminalio.FONT,
+        text="High Scores:",
+        x=4,
+        y=28,
+    )
+    group.append(hs_title)
+
+    # Show up to top 5 scores for this level
+    y_base = 36
+    spacing = 8
+    for i, entry in enumerate(high_scores[:5]):
+        name = entry.get("name", "")[:5]  # shorten long names
+        score = entry.get("score", 0)
+        line_text = "{}. {} {}".format(i + 1, name, score)
+        line = label.Label(
+            terminalio.FONT,
+            text=line_text,
+            x=4,
+            y=y_base + i * spacing,
+        )
+        group.append(line)
+
+    # Menu options (Restart / Main Menu) near bottom
+    y_menu_base = 56  # last visible row
+    # Put them compact on the right side
     for i, option in enumerate(GAME_OVER_OPTIONS):
         prefix = "> " if i == selected_index else "  "
         item = label.Label(
             terminalio.FONT,
             text=prefix + option,
-            x=10,
-            y=y_base + i * spacing,
+            x=70,
+            y=y_menu_base - (1 - i) * 8,  # Restart on line above Main Menu
         )
         group.append(item)
+
