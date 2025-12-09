@@ -5,7 +5,7 @@ from adafruit_display_text import label
 
 MAIN_MENU_OPTIONS = ["Start Game", "Exit"]
 DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard"]
-GAME_OVER_OPTIONS = ["Restart", "Main Menu"]
+GAME_OVER_OPTIONS = ["Restart", "Main"]
 
 LEVEL_COUNT = 10  # 10 levels per difficulty
 
